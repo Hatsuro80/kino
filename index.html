@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кинотеатр Билетики</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background-color: #0b1120;
+            color: #e0e7ff;
+            height: 100vh; overflow: hidden;
+        }
+
+        #lightning-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; background: radial-gradient(circle at center, #1a2a4a 0%, #0b1120 100%);
+            overflow: hidden;
+        }
+        .lightning {
+            position: absolute; width: 3px; height: 80px; background: #4da6ff;
+            border-radius: 2px; opacity: 0; transform: rotate(15deg);
+            box-shadow: 0 0 20px #4da6ff; animation: flash 4s infinite ease-in-out;
+        }
+        @keyframes flash {
+            0% { opacity: 0; transform: translateY(-100px) scale(1); }
+            10% { opacity: 1; transform: translateY(0px) scale(1.2); }
+            20% { opacity: 0; transform: translateY(50px) scale(0.8); }
+            100% { opacity: 0; transform: translateY(200px) scale(0); }
+        }
+
+        #login-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(11, 17, 32, 0.9); z-index: 1000;
+            transition: opacity 0.8s ease;
+        }
+        #login-box {
+            background: rgba(30, 50, 80, 0.3); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 16px; border: 1px solid #2a4a7a;
+            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 350px;
+        }
+        #login-box h2 { color: #8ab4ff; margin-bottom: 20px; letter-spacing: 2px; }
+        #login-box input {
+            width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px;
+            background: rgba(0,0,0,0.4); border: 1px solid #2a4a7a; color: white;
+            font-size: 16px; outline: none; transition: 0.3s;
+        }
+        #login-box input:focus { border-color: #4da6ff; box-shadow: 0 0 10px #4da6ff; }
+        #login-box button {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            background: #4da6ff; color: white; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(77, 166, 255, 0.3);
+        }
+        #login-box button:hover { background: #3b8cd6; transform: scale(1.02); }
+
+        #app-container {
+            display: none; height: 100vh; width: 100vw; display: flex; opacity: 0; transition: opacity 1s ease;
+        }
+
+        #sidebar {
+            width: 80px; height: 100%; background: rgba(20, 30, 50, 0.7);
+            backdrop-filter: blur(8px); border-right: 1px solid #1a3a5a;
+            display: flex; flex-direction: column; align-items: center; padding: 20px 0;
+            gap: 20px; flex-shrink: 0; position: relative; z-index: 10;
+        }
+        .nav-item {
+            width: 50px; height: 50px; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; cursor: pointer; transition: 0.3s;
+            color: #6a8aaa; background: transparent; position: relative;
+        }
+        .nav-item:hover { background: rgba(77, 166, 255, 0.1); color: #4da6ff; transform: scale(1.1); }
+        .nav-item.active { background: #4da6ff; color: white; box-shadow: 0 0 20px rgba(77, 166, 255, 0.4); }
+        
+        .nav-item::after {
+            content: attr(data-tooltip); position: absolute; left: 60px; top: 50%; transform: translateY(-50%);
+            background: #0b1120; color: #e0e7ff; padding: 6px 12px; border-radius: 4px;
+            font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none;
+            transition: 0.3s; border: 1px solid #1a3a5a; z-index: 9999;
+        }
+        .nav-item:hover::after { opacity: 1; }
+
+        #main-content-wrapper {
+            flex: 1; height: 100vh; position: relative; overflow-y: auto; overflow-x: hidden;
+        }
+        #main-content-wrapper::-webkit-scrollbar { width: 6px; }
+        #main-content-wrapper::-webkit-scrollbar-thumb { background: #2a4a7a; border-radius: 4px; }
+
+        #main-content { padding: 30px; position: relative; width: 100%; min-height: 100%; }
+        #greeting { font-size: 32px; font-weight: 300; margin-bottom: 30px; letter-spacing: 1px; color: #c0d8ff; }
+        #greeting span { color: #4da6ff; font-weight: 600; }
+
+        #content-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px;
+        }
+        .movie-card {
+            background: rgba(30, 50, 80, 0.2); border-radius: 12px; overflow: hidden;
+            border: 1px solid transparent; transition: 0.3s; cursor: pointer;
+        }
+        .movie-card:hover { border-color: #4da6ff; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .movie-poster {
+            width: 100%; height: 280px; background: #1a2a4a;
+            display: flex; justify-content: center; align-items: center;
+            color: #4a6a8a; font-size: 40px; overflow: hidden;
+        }
+        .movie-poster img { width: 100%; height: 100%; object-fit: cover; }
+        .movie-info { padding: 15px; }
+        .movie-info h3 { font-size: 16px; margin-bottom: 5px; color: white; }
+        .movie-info p { font-size: 12px; color: #6a8aaa; }
+
+        #category-dropdown {
+            display: none; position: absolute; left: 100px; top: 110px;
+            background: rgba(20, 30, 50, 0.95); backdrop-filter: blur(10px);
+            padding: 15px 20px; border-radius: 12px; border: 1px solid #2a4a7a;
+            z-index: 100; min-width: 180px;
+        }
+        #category-dropdown.active { display: block; }
+        #category-dropdown div {
+            padding: 8px 10px; cursor: pointer; border-radius: 6px; transition: 0.2s; color: #b0c8e0;
+        }
+        #category-dropdown div:hover { background: rgba(77, 166, 255, 0.2); color: #fff; }
+
+        #ticket-panel {
+            position: fixed; bottom: 30px; right: 30px;
+            background: rgba(20, 30, 50, 0.8); backdrop-filter: blur(8px);
+            padding: 15px 25px; border-radius: 12px; border: 1px solid #2a4a7a;
+            display: flex; align-items: center; gap: 10px; z-index: 100;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        #ticket-panel span { font-size: 20px; color: #ffd700; font-weight: bold; }
+
+        #series-page {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0b1120; z-index: 50; overflow-y: auto;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        #series-page::-webkit-scrollbar { width: 6px; }
+        #series-page::-webkit-scrollbar-thumb { background: #2a4a7a; border-radius: 4px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        #back-btn {
+            position: sticky; top: 20px; left: 20px; margin: 20px;
+            background: rgba(0,0,0,0.6); border: 1px solid #2a4a7a;
+            color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer;
+            z-index: 60; font-size: 16px; transition: 0.3s; width: fit-content;
+        }
+        #back-btn:hover { background: #4da6ff; border-color: #4da6ff; }
+
+        #series-banner {
+            width: 100%; height: 400px; overflow: hidden; position: relative;
+        }
+        #series-banner img {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: brightness(0.5) blur(2px);
+        }
+        #series-title-overlay {
+            position: absolute; bottom: 30px; left: 40px; z-index: 5;
+            font-size: 48px; font-weight: 800; color: white;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+        }
+        #age-rating-badge {
+            position: absolute; top: 30px; right: 40px; z-index: 5;
+            background: rgba(220, 40, 40, 0.85); border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 18px; border-radius: 30px; font-weight: 800; font-size: 20px;
+            color: white; backdrop-filter: blur(4px); box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+            letter-spacing: 1px;
+        }
+
+        #series-info { padding: 30px 40px; position: relative; }
+        #series-rating {
+            display: inline-block; background: #ffd700; color: #0b1120;
+            padding: 6px 14px; border-radius: 20px; font-weight: bold;
+            margin-bottom: 5px; font-size: 18px; margin-right: 15px;
+        }
+        #series-age-warning {
+            display: inline-block; color: #ff6666; font-size: 14px; font-weight: 300;
+        }
+        
+        #series-tags {
+            display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0;
+        }
+        .tag-pill {
+            background: rgba(77, 166, 255, 0.15); border: 1px solid rgba(77, 166, 255, 0.3);
+            padding: 4px 12px; border-radius: 20px; font-size: 13px; color: #8ab4ff;
+        }
+
+        #series-desc {
+            font-size: 16px; line-height: 1.8; color: #b0c8e0;
+            max-height: 180px; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;
+        }
+        #series-desc::-webkit-scrollbar { width: 4px; }
+        #series-desc::-webkit-scrollbar-thumb { background: #2a4a7a; border-radius: 4px; }
+
+        #voice-actor {
+            padding: 12px 20px; background: rgba(30, 50, 80, 0.3);
+            border-left: 3px solid #4da6ff; border-radius: 0 8px 8px 0;
+            margin-bottom: 20px; color: #a0c8e0; font-size: 15px;
+            display: inline-block;
+        }
+        #voice-actor span { color: #fff; font-weight: 600; }
+
+        #season-selector {
+            display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 40px 10px 40px;
+        }
+        .season-btn {
+            background: rgba(30, 50, 80, 0.3); border: 1px solid #2a4a7a;
+            color: #a0b8d0; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+            transition: 0.3s; font-size: 14px;
+        }
+        .season-btn:hover { border-color: #4da6ff; color: #fff; }
+        .season-btn.active { background: #4da6ff; color: white; border-color: #4da6ff; }
+
+        #episode-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px; padding: 20px 40px 40px 40px;
+        }
+        .episode-box {
+            aspect-ratio: 16 / 9; background: rgba(30, 50, 80, 0.3);
+            border-radius: 8px; border: 1px solid #1a3a5a;
+            display: flex; justify-content: center; align-items: center;
+            color: #4a6a8a; font-size: 14px; transition: 0.3s; cursor: pointer;
+        }
+        .episode-box:hover { border-color: #4da6ff; background: rgba(77, 166, 255, 0.1); transform: scale(1.02); }
+
+        #similar-section {
+            padding: 30px 40px 50px 40px; border-top: 1px solid #1a3a5a; margin-top: 20px;
+        }
+        #similar-section h3 { font-size: 22px; font-weight: 300; margin-bottom: 20px; color: #c0d8ff; }
+        #similar-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px;
+        }
+        .similar-card {
+            background: rgba(30, 50, 80, 0.15); border-radius: 10px; overflow: hidden;
+            border: 1px solid #1a3a5a; transition: 0.3s; cursor: pointer; height: 220px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #4a6a8a; font-size: 40px;
+        }
+        .similar-card:hover { border-color: #4da6ff; transform: translateY(-3px); }
+        .similar-card p { margin-top: 10px; font-size: 14px; color: #8ab4ff; }
+    </style>
+</head>
+<body>
+
+    <div id="lightning-bg">
+        <div class="lightning" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="lightning" style="left: 30%; animation-delay: 1.5s;"></div>
+        <div class="lightning" style="left: 55%; animation-delay: 3s;"></div>
+        <div class="lightning" style="left: 75%; animation-delay: 0.7s;"></div>
+        <div class="lightning" style="left: 90%; animation-delay: 2.2s;"></div>
+    </div>
+
+    <div id="login-screen">
+        <div id="login-box">
+            <h2>⚡ ВХОД</h2>
+            <input type="text" id="username-input" placeholder="Введи своё имя..." maxlength="20">
+            <button id="login-btn">Войти в кино</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        
+        <div id="sidebar">
+            <div class="nav-item active" data-tooltip="Новинки">🔥</div>
+            <div class="nav-item" data-tooltip="Всё на сайте">🎞</div>
+            <div class="nav-item" data-tooltip="Категории" id="category-btn">📂</div>
+            <div style="height: 2px; width: 40px; background: #1a3a5a; margin: 10px 0;"></div>
+            <div class="nav-item" data-tooltip="Билетики" style="color: #ffd700;">🎫</div>
+        </div>
+
+        <div id="category-dropdown">
+            <div onclick="changeCategory('Комедия')">😂 Комедия</div>
+            <div onclick="changeCategory('Боевик')">💥 Боевик</div>
+            <div onclick="changeCategory('Фантастика')">👽 Фантастика</div>
+            <div onclick="changeCategory('Аниме')">🇯🇵 Аниме</div>
+            <div onclick="changeCategory('Триллер')">🔪 Триллер</div>
+            <div onclick="changeCategory('Драма')">🎭 Драма</div>
+            <div onclick="changeCategory('Ужасы')">👻 Ужасы</div>
+            <div onclick="changeCategory('Приключения')">🧭 Приключения</div>
+            <div onclick="changeCategory('Детектив')">🔍 Детектив</div>
+        </div>
+
+        <div id="main-content-wrapper">
+            <div id="main-content">
+                <div id="greeting">Привет, <span id="user-display-name">Гость</span>!</div>
+                
+                <div id="content-grid">
+                    <div class="movie-card" onclick="openSeriesPage()">
+                        <div class="movie-poster">
+                            <img src="rik_i_morti.png" alt="Рик и Морти" onerror="this.style.display='none'; this.parentElement.textContent='🎥'">
+                        </div>
+                        <div class="movie-info">
+                            <h3>Рик и Морти</h3>
+                            <p>Мультивселенная ждёт</p>
+                        </div>
+                    </div>
+                    <div class="movie-card">
+                        <div class="movie-poster">🎥</div>
+                        <div class="movie-info"><h3>Мультфильм 2</h3><p>Скоро</p></div>
+                    </div>
+                </div>
+
+                <div id="ticket-panel">
+                    🎫 <span id="ticket-count">0</span> билетиков
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="series-page">
+        <button id="back-btn" onclick="closeSeriesPage()">← Назад</button>
+        
+        <div id="series-banner">
+            <img src="rik_i_morti.png" alt="Баннер">
+            <div id="series-title-overlay">РИК И МОРТИ</div>
+            <div id="age-rating-badge">18+</div>
+        </div>
+
+        <div id="series-info">
+            <div id="series-rating">⭐ 8.9 (Кинопоиск)</div>
+            <div id="series-age-warning">• Рекомендуется зрителям старше 18 лет</div>
+            
+            <div id="series-tags">
+                <span class="tag-pill">Фантастика</span>
+                <span class="tag-pill">Комедия</span>
+                <span class="tag-pill">Приключения</span>
+                <span class="tag-pill">Драма</span>
+            </div>
+
+            <div id="series-desc">
+                «Рик и Морти» — это не просто мультсериал, а интеллектуальный аттракцион, где научная фантастика встречается с чёрным юмором и экзистенциальной сатирой. В центре сюжета — безумный гений Рик Санчес и его внук Морти Смит. Рик, гениальный, но циничный и страдающий алкоголизмом, постоянно втягивает подростка в межгалактические авантюры: они путешествуют по Мультивселенной, используя портальную пушку и летающую тарелку из хлама, и каждый раз оказываются в нелепых, а порой и катастрофических ситуациях.<br><br>
+                Но за внешней клоунадой скрываются глубокие темы: смысл жизни в бескрайнем космосе, природа свободы воли, моральная ответственность за свои поступки и цена власти. Сериал иронично обыгрывает штампы фантастики и супергеройских историй, пародирует популярные культурные феномены и заставляет зрителя задуматься над абсурдностью бытия. При этом персонажи, несмотря на гротескность, получаются многослойными: в Рике гениальность соседствует с разрушительным поведением, а Морти, несмотря на наивность, постепенно взрослеет.<br><br>
+                Визуальный стиль яркий и хаотичный, с массой деталей, а диалоги насыщены научным жаргоном, отсылками и метаиронией. Шоу умело балансирует между «приключением недели» и долгими арками, которые меняют статус-кво и раскрывают предысторию персонажей.<br><br>
+                Если вы любите не только смеяться, но и размышлять, «Рик и Морти» станет для вас интеллектуальным вызовом и эмоциональным трипом в одном флаконе.
+            </div>
+
+            <div id="voice-actor">🎙️ Озвучил и перевел: <span>СЫЕНДУК</span></div>
+        </div>
+
+        <div id="season-selector"></div>
+        <div id="episode-grid"></div>
+
+        <div id="similar-section">
+            <h3>🎬 Похожие мультсериалы</h3>
+            <div id="similar-grid">
+                <div class="similar-card">
+                    🧪<p>Похожий 1</p>
+                </div>
+                <div class="similar-card">
+                    🛸<p>Похожий 2</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginScreen = document.getElementById('login-screen');
+        const loginBtn = document.getElementById('login-btn');
+        const usernameInput = document.getElementById('username-input');
+        const appContainer = document.getElementById('app-container');
+        const userDisplayName = document.getElementById('user-display-name');
+
+        loginBtn.addEventListener('click', function() {
+            let name = usernameInput.value.trim();
+            if (name === '') name = 'Гость';
+            userDisplayName.textContent = name;
+            loginScreen.style.opacity = '0';
+            setTimeout(() => {
+                loginScreen.style.display = 'none';
+                appContainer.style.display = 'flex';
+                setTimeout(() => { appContainer.style.opacity = '1'; }, 100);
+            }, 800);
+        });
+        usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                navItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                const tooltip = this.getAttribute('data-tooltip');
+                const greeting = document.getElementById('greeting');
+                if (tooltip === 'Новинки') greeting.innerHTML = `🔥 Новинки, <span>${userDisplayName.textContent}</span>!`;
+                else if (tooltip === 'Всё на сайте') greeting.innerHTML = `🎞 Всё что есть, <span>${userDisplayName.textContent}</span>!`;
+                else if (tooltip === 'Категории') greeting.innerHTML = `📂 Категории, <span>${userDisplayName.textContent}</span>!`;
+                else if (tooltip === 'Билетики') greeting.innerHTML = `🎫 Твои билетики, <span>${userDisplayName.textContent}</span>!`;
+            });
+        });
+
+        const categoryBtn = document.getElementById('category-btn');
+        const categoryDropdown = document.getElementById('category-dropdown');
+
+        categoryBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            categoryDropdown.classList.toggle('active');
+        });
+        document.addEventListener('click', function() {
+            categoryDropdown.classList.remove('active');
+        });
+
+        function changeCategory(cat) {
+            document.getElementById('greeting').innerHTML = `📂 Категория: ${cat}, <span>${userDisplayName.textContent}</span>!`;
+            categoryDropdown.classList.remove('active');
+        }
+
+        let tickets = 0;
+        const ticketSpan = document.getElementById('ticket-count');
+        const cards = document.querySelectorAll('.movie-card');
+        cards.forEach(card => {
+            card.addEventListener('click', function() {
+                tickets += 1;
+                ticketSpan.textContent = tickets;
+                card.style.border = '2px solid #ffd700';
+                setTimeout(() => { card.style.border = '1px solid transparent'; }, 500);
+            });
+        });
+
+        const seriesPage = document.getElementById('series-page');
+        const seasonSelector = document.getElementById('season-selector');
+        const episodeGrid = document.getElementById('episode-grid');
+        const seasonsData = { 1: 11, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10 };
+
+        function openSeriesPage() {
+            document.getElementById('main-content-wrapper').style.display = 'none';
+            seriesPage.style.display = 'block';
+            renderSeasons();
+        }
+
+        function closeSeriesPage() {
+            seriesPage.style.display = 'none';
+            document.getElementById('main-content-wrapper').style.display = 'block';
+        }
+
+        function renderSeasons() {
+            seasonSelector.innerHTML = '';
+            for (let i = 1; i <= 7; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'season-btn';
+                btn.textContent = `Сезон ${i}`;
+                btn.onclick = () => selectSeason(i, btn);
+                seasonSelector.appendChild(btn);
+            }
+            const firstBtn = seasonSelector.querySelector('.season-btn');
+            if (firstBtn) firstBtn.click();
+        }
+
+        function selectSeason(seasonNum, btnElement) {
+            document.querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            episodeGrid.innerHTML = '';
+            const count = seasonsData[seasonNum] || 10;
+            for (let i = 1; i <= count; i++) {
+                const box = document.createElement('div');
+                box.className = 'episode-box';
+                box.textContent = `Серия ${i}`;
+                box.onclick = () => {
+                    if (seasonNum === 1 && i === 1) {
+                        const playerDiv = document.createElement('div');
+                        playerDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column;';
+                        
+                        const closeBtn = document.createElement('button');
+                        closeBtn.textContent = '✕ Закрыть';
+                        closeBtn.style.cssText = 'position:absolute; top:20px; right:30px; background:#4da6ff; border:none; color:white; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:16px; z-index:10000;';
+                        closeBtn.onclick = () => document.body.removeChild(playerDiv);
+                        
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.style.cssText = 'max-width: 90%; max-height: 80vh; border-radius: 12px;';
+                        
+                        // Твоя ссылка с Яндекса вставлена прямо здесь!
+                        video.src = 'https://disk.yandex.ru/i/bmNpHKHmK7nlpg';
+                        
+                        playerDiv.appendChild(video);
+                        playerDiv.appendChild(closeBtn);
+                        document.body.appendChild(playerDiv);
+                    } else {
+                        alert(`Пока нет видео для Сезон ${seasonNum}, Серия ${i}`);
+                    }
+                };
+                episodeGrid.appendChild(box);
+            }
+        }
+    </script>
+</body>
+</html>
