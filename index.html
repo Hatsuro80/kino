@@ -459,6 +459,7 @@
                 box.textContent = `Серия ${i}`;
                 box.onclick = () => {
                     if (seasonNum === 1 && i === 1) {
+                        // ОТКРЫВАЕМ ВК ПЛЕЕР ПРЯМО НА САЙТЕ
                         const playerDiv = document.createElement('div');
                         playerDiv.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column;';
                         
@@ -467,14 +468,11 @@
                         closeBtn.style.cssText = 'position:absolute; top:20px; right:30px; background:#4da6ff; border:none; color:white; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:16px; z-index:10000;';
                         closeBtn.onclick = () => document.body.removeChild(playerDiv);
                         
-                        const video = document.createElement('video');
-                        video.controls = true;
-                        video.autoplay = true;
-                        video.style.cssText = 'max-width: 90%; max-height: 80vh; border-radius: 12px;';
+                        const iframe = document.createElement('iframe');
+                        iframe.style.cssText = 'width: 90%; height: 80vh; border: none; border-radius: 12px;';
+                        iframe.src = 'https://vkvideo.ru/video_ext.php?oid=-235797858&id=456243982&hash=db0a2af67c3a26ef';
                         
-                        video.src = 'https://vkvideo.ru/video_ext.php?oid=-235797858&id=456243982&hash=db0a2af67c3a26ef';
-                        
-                        playerDiv.appendChild(video);
+                        playerDiv.appendChild(iframe);
                         playerDiv.appendChild(closeBtn);
                         document.body.appendChild(playerDiv);
                     } else {
